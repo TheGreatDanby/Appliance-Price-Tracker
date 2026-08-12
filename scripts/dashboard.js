@@ -18,37 +18,6 @@ function seriesKey(retailer, model) {
   return model ? `${retailer} — ${model}` : retailer;
 }
 
-function currentPricesRows(latest) {
-  return latest
-    .map((r) => {
-      const price = r.price == null
-        ? `<span class="price">—</span>`
-        : `<span class="price">${fmtPrice(r.price)}</span>`;
-      const status = r.price == null
-        ? `<span class="badge badge-na">${esc(r.error || "Not found")}</span>`
-        : `<span class="badge badge-good">OK</span>`;
-      return `<tr>
-          <td>${esc(r.retailer)}</td>
-          <td>${esc(r.model || "—")}</td>
-          <td>${price}</td>
-          <td>${status}</td>
-          <td>${fmtDate(r.date)}</td>
-          <td><a class="link" href="${esc(r.url)}" target="_blank" rel="noopener">View</a></td>
-        </tr>`;
-    })
-    .join("\n");
-}
-
-function historyRows(history) {
-  const sorted = [...history].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-  return sorted
-    .slice(0, 200) // cap the rendered table — full history still lives in KV/api
-    .map(
-      (h) => `<tr><td>${fmtDate(h.date)}</td><td>${esc(h.retailer)}</td><td>${esc(h.model || "—")}</td><td>${fmtPrice(h.price)}</td></tr>`
-    )
-    .join("\n");
-}
-
 function lowestPrice(history) {
   if (!history.length) return null;
   return history.reduce((min, h) => (min == null || h.price < min.price ? h : min), null);
@@ -83,6 +52,24 @@ export function renderDashboard({ history, latest, lastRun }) {
     .filter((h) => seriesNames.includes(seriesKey(h.retailer, h.model)))
     .map((h) => ({ date: h.date, series: seriesKey(h.retailer, h.model), price: h.price }));
 
+  // Data for the client-rendered, sortable/foldable Current Prices table.
+  const currentPricesData = latest.map((r) => ({
+    retailer: r.retailer,
+    model: r.model || null,
+    price: r.price,
+    status: r.price == null ? "N/A" : "OK",
+    statusTooltip: r.price == null ? (r.error || "Price not found") : "",
+    date: r.date || null,
+    time: r.time || null,
+    url: r.url || null,
+  }));
+
+  // Data for the client-rendered, foldable Price History Log.
+  const historyRowsData = [...history]
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+    .slice(0, 500) // sane cap — full history still lives in data/history.json
+    .map((h) => ({ date: h.date, retailer: h.retailer, model: h.model || null, price: h.price }));
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -104,16 +91,34 @@ export function renderDashboard({ history, latest, lastRun }) {
   .card h2 { font-size:15px; margin:0 0 14px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; }
   table { width:100%; border-collapse:collapse; font-size:14px; }
   th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); }
-  th { color:var(--text-dim); font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:.03em; }
+  th { color:var(--text-dim); font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
   tr:last-child td { border-bottom:none; }
   .price { font-weight:600; font-size:15px; }
   .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; }
   .badge-good { background:rgba(62,207,142,.15); color:var(--good); }
-  .badge-na { background:rgba(154,161,172,.12); color:var(--text-dim); }
+  .badge-na { background:rgba(154,161,172,.12); color:var(--text-dim); cursor:help; }
   .note { color:var(--text-dim); font-size:13px; line-height:1.6; }
   .footer { color:var(--text-dim); font-size:12px; text-align:center; margin-top:24px; }
   a.link { color:var(--accent); text-decoration:none; font-size:12px; }
   a.link:hover { text-decoration:underline; }
+
+  th.sortable { cursor:pointer; user-select:none; }
+  th.sortable:hover { color:var(--text); }
+  th.sortable .arrow { display:inline-block; margin-left:4px; opacity:.4; font-size:10px; }
+  th.sortable.active .arrow { opacity:1; color:var(--accent); }
+
+  .table-wrap.expanded { max-height:420px; overflow-y:auto; display:block; }
+  .table-wrap.expanded table { width:100%; }
+  tr.folded { display:none; }
+  .fold-toggle {
+    display:inline-flex; align-items:center; gap:6px; margin-top:12px;
+    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    font-size:12px; padding:6px 12px; border-radius:999px; cursor:pointer;
+  }
+  .fold-toggle:hover { border-color:var(--accent); }
+  .fold-toggle .chev { transition:transform .15s ease; display:inline-block; }
+  .fold-toggle.expanded .chev { transform:rotate(180deg); }
+
   .viz-root { position:relative; }
   .chart-grid { stroke:#2a2f3a; stroke-width:1; }
   .chart-baseline { stroke:#3a3f4a; stroke-width:1; }
@@ -133,18 +138,33 @@ export function renderDashboard({ history, latest, lastRun }) {
 
   <div class="card">
     <h2>Current Prices</h2>
-    <table>
-      <thead><tr><th>Retailer</th><th>Model</th><th>Price</th><th>Status</th><th>Last checked</th><th>Link</th></tr></thead>
-      <tbody>${latest.length ? currentPricesRows(latest) : `<tr><td colspan="6" class="note">No data yet — trigger a check via /api/run or wait for the next scheduled run.</td></tr>`}</tbody>
-    </table>
+    <div class="table-wrap" id="current-prices-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" data-key="retailer">Retailer<span class="arrow">▲</span></th>
+            <th class="sortable" data-key="model">Model<span class="arrow">▲</span></th>
+            <th class="sortable" data-key="price">Price<span class="arrow">▲</span></th>
+            <th class="sortable" data-key="status">Status<span class="arrow">▲</span></th>
+            <th class="sortable" data-key="checked">Last checked<span class="arrow">▲</span></th>
+            <th>Link</th>
+          </tr>
+        </thead>
+        <tbody id="current-prices-body"></tbody>
+      </table>
+    </div>
+    <button class="fold-toggle" id="current-prices-toggle" type="button"></button>
   </div>
 
   <div class="card">
     <h2>Price History Log</h2>
-    <table>
-      <thead><tr><th>Date</th><th>Retailer</th><th>Model</th><th>Price</th></tr></thead>
-      <tbody>${history.length ? historyRows(history) : `<tr><td colspan="4" class="note">No history yet.</td></tr>`}</tbody>
-    </table>
+    <div class="table-wrap" id="history-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Retailer</th><th>Model</th><th>Price</th></tr></thead>
+        <tbody id="history-body"></tbody>
+      </table>
+    </div>
+    <button class="fold-toggle" id="history-toggle" type="button"></button>
   </div>
 
   <div class="card">
@@ -155,6 +175,29 @@ export function renderDashboard({ history, latest, lastRun }) {
     </div>
     <div class="note" style="margin-top:14px;">
       Hover a point for the exact price and date.${foldedCount ? ` Showing the ${seriesNames.length} cheapest retailer/model combinations to keep the chart's colors distinguishable — ${foldedCount} more are tracked in the tables above but folded out of this chart.` : ""}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Model Comparison</h2>
+    <table>
+      <thead><tr><th>Spec</th><th>SMU6HCS01A</th><th>SMU6HAS01A</th></tr></thead>
+      <tbody>
+        <tr><td>RRP</td><td>$1,799</td><td>$1,599</td></tr>
+        <tr><td>Place settings</td><td>15</td><td>15</td></tr>
+        <tr><td>Noise level</td><td>44 dB</td><td>44 dB</td></tr>
+        <tr><td>Energy rating</td><td>4 stars</td><td>4 stars</td></tr>
+        <tr><td>Water rating (WELS)</td><td>5.5 stars</td><td>5.0 stars</td></tr>
+        <tr><td>Cutlery tray</td><td>VarioDrawer™ (3rd-level drawer)</td><td>Standard cutlery basket (no drawer)</td></tr>
+        <tr><td>Top basket</td><td>RackmaticPlus™ — 3-stage height adjust</td><td>Rackmatic — height adjustable</td></tr>
+        <tr><td>Drying</td><td>Heat exchanger + Extra Clean Zone</td><td>Heat exchanger + Extra Dry option + Extra Clean Zone</td></tr>
+        <tr><td>Home Connect (Wi-Fi)</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>AquaStop flood protection</td><td>Yes (lifetime)</td><td>Yes (lifetime)</td></tr>
+        <tr><td>Finish</td><td>Brushed steel anti-fingerprint</td><td>Brushed steel anti-fingerprint</td></tr>
+      </tbody>
+    </table>
+    <div class="note" style="margin-top:14px;">
+      The main real-world difference is the <strong>VarioDrawer cutlery drawer</strong> — SMU6HCS01A has a third-level sliding drawer for cutlery/utensils instead of a basket, and a slightly higher water-efficiency rating (5.5★ vs 5.0★). SMU6HAS01A is the otherwise near-identical, slightly older/cheaper variant without the drawer, which is why its RRP sits about $200 lower. Both are 15-place-setting, Wi-Fi-enabled, 44dB Series 6 built-under models.
     </div>
   </div>
 
@@ -174,6 +217,134 @@ export function renderDashboard({ history, latest, lastRun }) {
 <script>
 var priceData = ${JSON.stringify(chartData)};
 var seriesColors = ${JSON.stringify(colorFor)};
+var currentPricesData = ${JSON.stringify(currentPricesData)};
+var historyRowsData = ${JSON.stringify(historyRowsData)};
+var FOLD_COUNT = 3;
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function fmtPriceJs(n) { return n == null ? "—" : "$" + n.toLocaleString("en-AU"); }
+function fmtDateJs(iso) {
+  if (!iso) return "—";
+  var d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+}
+
+// ---- Current Prices: sortable + foldable (single table, extra rows just hidden) ----
+(function () {
+  var sort = { key: "price", dir: "asc" };
+
+  function rowHtml(r, folded) {
+    var priceHtml = '<span class="price">' + fmtPriceJs(r.price) + '</span>';
+    var statusHtml = r.status === "OK"
+      ? '<span class="badge badge-good">OK</span>'
+      : '<span class="badge badge-na" title="' + esc(r.statusTooltip) + '">N/A</span>';
+    var checked = r.date ? fmtDateJs(r.date) + (r.time ? " " + r.time : "") : "—";
+    var link = r.url ? '<a class="link" href="' + esc(r.url) + '" target="_blank" rel="noopener">View</a>' : "—";
+    return '<tr class="' + (folded ? "folded" : "") + '"><td>' + esc(r.retailer) + "</td><td>" + esc(r.model || "—") + "</td><td>" + priceHtml +
+      "</td><td>" + statusHtml + "</td><td>" + checked + "</td><td>" + link + "</td></tr>";
+  }
+
+  function sortedRows() {
+    var rows = currentPricesData.slice();
+    var key = sort.key, dir = sort.dir === "asc" ? 1 : -1;
+    rows.sort(function (a, b) {
+      var av = a[key], bv = b[key];
+      if (key === "checked") { av = (a.date || "") + " " + (a.time || ""); bv = (b.date || "") + " " + (b.time || ""); }
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1; // nulls always last regardless of direction
+      if (bv == null) return -1;
+      if (typeof av === "string") av = av.toLowerCase();
+      if (typeof bv === "string") bv = bv.toLowerCase();
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return rows;
+  }
+
+  var wrap = document.getElementById("current-prices-wrap");
+  var toggle = document.getElementById("current-prices-toggle");
+
+  function render() {
+    var rows = sortedRows();
+    var restCount = Math.max(0, rows.length - FOLD_COUNT);
+
+    document.getElementById("current-prices-body").innerHTML = rows
+      .map(function (r, i) { return rowHtml(r, i >= FOLD_COUNT && !wrap.classList.contains("expanded")); })
+      .join("");
+
+    if (!restCount) {
+      toggle.style.display = "none";
+    } else {
+      toggle.style.display = "inline-flex";
+      var expanded = wrap.classList.contains("expanded");
+      toggle.innerHTML = (expanded ? "Show top " + FOLD_COUNT : "Show all " + rows.length + " (" + restCount + " more)") + ' <span class="chev">▾</span>';
+    }
+
+    document.querySelectorAll("th.sortable").forEach(function (th) {
+      th.classList.toggle("active", th.dataset.key === sort.key);
+      var arrow = th.querySelector(".arrow");
+      if (th.dataset.key === sort.key) arrow.textContent = sort.dir === "asc" ? "▲" : "▼";
+      else arrow.textContent = "▲";
+    });
+  }
+
+  document.querySelectorAll("th.sortable").forEach(function (th) {
+    th.addEventListener("click", function () {
+      var key = th.dataset.key;
+      if (sort.key === key) sort.dir = sort.dir === "asc" ? "desc" : "asc";
+      else { sort.key = key; sort.dir = "asc"; }
+      render();
+    });
+  });
+
+  toggle.addEventListener("click", function () {
+    var expanding = !wrap.classList.contains("expanded");
+    wrap.classList.toggle("expanded", expanding);
+    toggle.classList.toggle("expanded", expanding);
+    render();
+  });
+
+  render();
+})();
+
+// ---- Price History Log: foldable, newest first (single table) ----
+(function () {
+  function rowHtml(h, folded) {
+    return '<tr class="' + (folded ? "folded" : "") + '"><td>' + fmtDateJs(h.date) + "</td><td>" + esc(h.retailer) + "</td><td>" + esc(h.model || "—") + "</td><td>" + fmtPriceJs(h.price) + "</td></tr>";
+  }
+
+  var wrap = document.getElementById("history-wrap");
+  var toggle = document.getElementById("history-toggle");
+  var restCount = Math.max(0, historyRowsData.length - FOLD_COUNT);
+
+  function render() {
+    var expanded = wrap.classList.contains("expanded");
+    document.getElementById("history-body").innerHTML = historyRowsData.length
+      ? historyRowsData.map(function (h, i) { return rowHtml(h, i >= FOLD_COUNT && !expanded); }).join("")
+      : '<tr><td colspan="4" class="note">No history yet.</td></tr>';
+
+    if (!restCount) {
+      toggle.style.display = "none";
+    } else {
+      toggle.style.display = "inline-flex";
+      toggle.innerHTML = (expanded ? "Show top " + FOLD_COUNT : "Show all " + historyRowsData.length + " (" + restCount + " more)") + ' <span class="chev">▾</span>';
+    }
+  }
+
+  toggle.addEventListener("click", function () {
+    var expanding = !wrap.classList.contains("expanded");
+    wrap.classList.toggle("expanded", expanding);
+    toggle.classList.toggle("expanded", expanding);
+    render();
+  });
+
+  render();
+})();
 
 function renderPriceChart() {
   var container = document.getElementById('price-chart');

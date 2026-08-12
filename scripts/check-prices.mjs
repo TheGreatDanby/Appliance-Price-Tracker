@@ -16,11 +16,18 @@ const latestPath = dataDir + "latest.json";
 const lastRunPath = dataDir + "last-run.json";
 const lastDropsPath = dataDir + "last-drops.json";
 
-function todayISO(offsetHours = 10) {
-  // Brisbane is UTC+10 year-round (no DST) — stamp with the Brisbane date
-  // regardless of what UTC moment the workflow actually runs at.
-  const now = new Date(Date.now() + offsetHours * 3600 * 1000);
-  return now.toISOString().slice(0, 10);
+function brisbaneNow(offsetHours = 10) {
+  // Brisbane is UTC+10 year-round (no DST) — shift so the ISO getters below
+  // read as Brisbane wall-clock regardless of what UTC moment this runs at.
+  return new Date(Date.now() + offsetHours * 3600 * 1000);
+}
+
+function todayISO() {
+  return brisbaneNow().toISOString().slice(0, 10);
+}
+
+function nowHHMM() {
+  return brisbaneNow().toISOString().slice(11, 16);
 }
 
 async function checkFetchRetailer(retailer) {
@@ -52,6 +59,7 @@ async function checkBrowserRetailer(retailer, browser) {
 
 async function main() {
   const date = todayISO();
+  const time = nowHHMM();
   const checkable = RETAILERS.filter((r) => r.method === "fetch" || r.method === "browser");
   const fetchRetailers = checkable.filter((r) => r.method === "fetch");
   const browserRetailers = checkable.filter((r) => r.method === "browser");
@@ -88,7 +96,7 @@ async function main() {
 
   for (const r of results) {
     if (r.price == null) {
-      latest.push({ retailer: r.name, model: r.model, price: null, url: r.url, date, error: r.error || "price not found" });
+      latest.push({ retailer: r.name, model: r.model, price: null, url: r.url, date, time, error: r.error || "price not found" });
       console.log(`  ${r.name}: not found (${r.error || "no price"})`);
       continue;
     }
@@ -98,7 +106,7 @@ async function main() {
       .reduce((min, h) => (min == null ? h.price : Math.min(min, h.price)), null);
 
     history.push({ date, retailer: r.name, model: r.model, price: r.price, url: r.url });
-    latest.push({ retailer: r.name, model: r.model, price: r.price, url: r.url, date });
+    latest.push({ retailer: r.name, model: r.model, price: r.price, url: r.url, date, time });
     console.log(`  ${r.name}: $${r.price} (via ${r.source})`);
 
     if (prevBest != null && r.price < prevBest) {
