@@ -6,7 +6,7 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 import { fileURLToPath } from "url";
 import { chromium } from "playwright";
 import { RETAILERS } from "./retailers.js";
-import { extractPriceFromHtml, extractPriceFromRenderedText } from "./extract.js";
+import { extractPriceFromHtml, extractPriceFromRenderedText, extractPriceBeatFromText } from "./extract.js";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
@@ -57,22 +57,50 @@ async function checkBrowserRetailer(retailer, browser) {
   }
 }
 
+// Same as checkBrowserRetailer, but clicks a reveal-price element first
+// (e.g. The Good Guys' "Price Check: Pay Less with PRICE BEAT" modal) and
+// reads the price out of whatever that click reveals.
+async function checkBrowserClickRetailer(retailer, browser) {
+  const page = await browser.newPage({ userAgent: UA });
+  try {
+    await page.goto(retailer.url, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(1000);
+
+    const clickTarget = page.getByText(retailer.clickText, { exact: false }).first();
+    await clickTarget.click({ timeout: 10000 });
+    await page.waitForTimeout(1200); // let the modal/panel render
+
+    const text = await page.evaluate(() => document.body.innerText);
+    const result = extractPriceBeatFromText(text);
+    return { ...retailer, price: result.price, source: result.source };
+  } catch (err) {
+    return { ...retailer, price: null, error: String(err) };
+  } finally {
+    await page.close();
+  }
+}
+
 async function main() {
   const date = todayISO();
   const time = nowHHMM();
-  const checkable = RETAILERS.filter((r) => r.method === "fetch" || r.method === "browser");
+  const checkable = RETAILERS.filter((r) => r.method === "fetch" || r.method === "browser" || r.method === "browser-click");
   const fetchRetailers = checkable.filter((r) => r.method === "fetch");
   const browserRetailers = checkable.filter((r) => r.method === "browser");
+  const browserClickRetailers = checkable.filter((r) => r.method === "browser-click");
 
-  console.log(`Checking ${fetchRetailers.length} fetch retailers + ${browserRetailers.length} browser retailers for ${date}...`);
+  console.log(`Checking ${fetchRetailers.length} fetch retailers + ${browserRetailers.length} browser retailers + ${browserClickRetailers.length} click-through retailers for ${date}...`);
 
   const fetchResults = await Promise.all(fetchRetailers.map(checkFetchRetailer));
 
   let browserResults = [];
-  if (browserRetailers.length) {
+  let browserClickResults = [];
+  if (browserRetailers.length || browserClickRetailers.length) {
     const browser = await chromium.launch();
     for (const r of browserRetailers) {
       browserResults.push(await checkBrowserRetailer(r, browser));
+    }
+    for (const r of browserClickRetailers) {
+      browserClickResults.push(await checkBrowserClickRetailer(r, browser));
     }
     await browser.close();
   }
@@ -80,7 +108,7 @@ async function main() {
   const unavailable = RETAILERS.filter((r) => r.method === "unavailable")
     .map((r) => ({ ...r, price: null, error: r.note || "not available from this retailer" }));
 
-  const results = [...fetchResults, ...browserResults, ...unavailable];
+  const results = [...fetchResults, ...browserResults, ...browserClickResults, ...unavailable];
 
   await mkdir(dataDir, { recursive: true });
 

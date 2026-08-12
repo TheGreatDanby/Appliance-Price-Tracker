@@ -78,6 +78,14 @@ export const RETAILERS = [
     method: "browser",
   },
   {
+    name: "The Good Guys (Price Beat)",
+    model: "SMU6HCS01A",
+    url: "https://www.thegoodguys.com.au/bosch-series-6-built-under-dishwasher-stainless-steel-smu6hcs01a",
+    method: "browser-click",
+    clickText: "PRICE BEAT",
+    note: "The Good Guys' Price Beat guarantee automatically undercuts the lowest price it monitors among Harvey Norman, Bing Lee, JB Hi-Fi, e&s, Betta Electrical, Appliances Online, Myer, Officeworks and David Jones — click 'Price Check' on the product page to reveal it. This is the price you'd actually pay by adding to cart or calling, not the shelf-listed price above.",
+  },
+  {
     name: "Harvey Norman",
     model: "SMU6HCS01A",
     url: "https://www.harveynorman.com.au/bosch-60cm-series-6-built-under-dishwasher-with-home-connect-stainless-steel.html",

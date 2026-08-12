@@ -1,5 +1,11 @@
 import { CHART_PALETTE } from "./retailers.js";
 
+// Deep link to the GitHub Actions workflow so the Refresh button can open
+// it in a new tab. A static GitHub Pages site has no server of its own to
+// run the check from — this is the closest thing to a "refresh" button
+// that doesn't mean embedding a repo-write credential in a public page.
+const WORKFLOW_URL = "https://github.com/TheGreatDanby/Appliance-Price-Tracker/actions/workflows/daily-price-check.yml";
+
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -85,8 +91,20 @@ export function renderDashboard({ history, latest, lastRun }) {
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; padding:32px 20px 60px; }
   .wrap { max-width:920px; margin:0 auto; }
+  .header-row { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
   h1 { font-size:22px; margin:0 0 4px; }
   .subtitle { color:var(--text-dim); font-size:14px; margin-bottom:28px; }
+  .header-meta { display:flex; align-items:center; gap:10px; flex-shrink:0; padding-top:2px; }
+  .header-meta .checked-at { color:var(--text-dim); font-size:12px; text-align:right; line-height:1.4; }
+  .header-meta .checked-at strong { color:var(--text); font-weight:600; }
+  .refresh-btn {
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    font-size:12px; font-weight:600; padding:7px 14px; border-radius:999px;
+    text-decoration:none; cursor:pointer;
+  }
+  .refresh-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .refresh-btn svg { width:13px; height:13px; }
   .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px 22px; margin-bottom:18px; }
   .card h2 { font-size:15px; margin:0 0 14px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; }
   table { width:100%; border-collapse:collapse; font-size:14px; }
@@ -133,8 +151,19 @@ export function renderDashboard({ history, latest, lastRun }) {
 </head>
 <body>
 <div class="wrap">
-  <h1>Bosch Series 6 Built-Under Dishwasher</h1>
-  <div class="subtitle">Daily price watch across major AU retailers · Runs automatically via a scheduled GitHub Actions workflow</div>
+  <div class="header-row">
+    <div>
+      <h1>Bosch Series 6 Built-Under Dishwasher</h1>
+      <div class="subtitle">Daily price watch across major AU retailers · Runs automatically via a scheduled GitHub Actions workflow</div>
+    </div>
+    <div class="header-meta">
+      <div class="checked-at">Last checked<br><strong>${lastRun ? new Date(lastRun.ranAt).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "never"}</strong></div>
+      <a class="refresh-btn" href="${WORKFLOW_URL}" target="_blank" rel="noopener" title="Opens the GitHub Actions workflow page — click 'Run workflow' there to trigger a manual scan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+        Refresh
+      </a>
+    </div>
+  </div>
 
   <div class="card">
     <h2>Current Prices</h2>
@@ -146,7 +175,6 @@ export function renderDashboard({ history, latest, lastRun }) {
             <th class="sortable" data-key="model">Model<span class="arrow">▲</span></th>
             <th class="sortable" data-key="price">Price<span class="arrow">▲</span></th>
             <th class="sortable" data-key="status">Status<span class="arrow">▲</span></th>
-            <th class="sortable" data-key="checked">Last checked<span class="arrow">▲</span></th>
             <th>Link</th>
           </tr>
         </thead>
@@ -206,8 +234,9 @@ export function renderDashboard({ history, latest, lastRun }) {
     <div class="note">
       ${low ? `Lowest price found: <strong>${fmtPrice(low.price)} at ${esc(low.retailer)}</strong> (${esc(low.model || "")}, ${fmtDate(low.date)}).<br><br>` : ""}
       <strong>The Good Guys, Harvey Norman, and eBay</strong> are all checked with a real Chromium browser via Playwright rather than a plain fetch. eBay was moved to this method on 12 Aug 2026 after its price was found to be wrong: a plain fetch got no JSON-LD/meta price data and fell back to a stale dollar figure in the raw HTML text ($1,214) that didn't match what a real browser session showed ($1,385 — confirmed live). Earlier eBay readings in the history log predate this fix and may be inaccurate.<br><br>
+      <strong>The Good Guys (Price Beat)</strong> is the price you'd actually pay after clicking "Price Check: Pay Less with PRICE BEAT" on their product page — it auto-undercuts the lowest price they monitor across other major retailers, and is usually cheaper than TGG's own shelf price shown in the "The Good Guys" row above.<br><br>
       Price extraction is best-effort — see <code>scripts/extract.js</code>. Run <code>node scripts/check-prices.mjs</code> locally and check the console output to see what each retailer's check actually found.<br><br>
-      Last automated run: <strong>${lastRun ? new Date(lastRun.ranAt).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" }) + " (Brisbane time)" : "never"}</strong>.
+      The <strong>Refresh</strong> button (top right) opens the GitHub Actions workflow page — click "Run workflow" there to trigger a manual scan. A static GitHub Pages site can't run an authenticated scan directly without exposing a credential in the page itself, so this link is the safe way to trigger one on demand.
     </div>
   </div>
 
@@ -242,10 +271,9 @@ function fmtDateJs(iso) {
     var statusHtml = r.status === "OK"
       ? '<span class="badge badge-good">OK</span>'
       : '<span class="badge badge-na" title="' + esc(r.statusTooltip) + '">N/A</span>';
-    var checked = r.date ? fmtDateJs(r.date) + (r.time ? " " + r.time : "") : "—";
     var link = r.url ? '<a class="link" href="' + esc(r.url) + '" target="_blank" rel="noopener">View</a>' : "—";
     return '<tr class="' + (folded ? "folded" : "") + '"><td>' + esc(r.retailer) + "</td><td>" + esc(r.model || "—") + "</td><td>" + priceHtml +
-      "</td><td>" + statusHtml + "</td><td>" + checked + "</td><td>" + link + "</td></tr>";
+      "</td><td>" + statusHtml + "</td><td>" + link + "</td></tr>";
   }
 
   function sortedRows() {
@@ -253,7 +281,6 @@ function fmtDateJs(iso) {
     var key = sort.key, dir = sort.dir === "asc" ? 1 : -1;
     rows.sort(function (a, b) {
       var av = a[key], bv = b[key];
-      if (key === "checked") { av = (a.date || "") + " " + (a.time || ""); bv = (b.date || "") + " " + (b.time || ""); }
       if (av == null && bv == null) return 0;
       if (av == null) return 1; // nulls always last regardless of direction
       if (bv == null) return -1;

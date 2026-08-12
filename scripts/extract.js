@@ -114,3 +114,17 @@ export function extractPriceFromRenderedText(text) {
   // page (before the Afterpay/Zip installment breakdown further down).
   return { price: candidates[0], source: "rendered-text", candidates };
 }
+
+// For "click a price-beat/reveal-price widget, then read the modal" flows
+// (e.g. The Good Guys' "Price Check: Pay Less with PRICE BEAT"). Looks for
+// the specific "YOU WILL PAY $X" phrasing first since that page also shows
+// an unrelated "Lowest monitored online price today $Y" figure right next
+// to it — falls back to the general text scan if that phrase isn't found.
+export function extractPriceBeatFromText(text) {
+  const m = text.match(/YOU WILL PAY\s*\$?\s*([\d,]+(?:\.\d{2})?)/i);
+  if (m) {
+    const n = toNumber(m[1]);
+    if (inRange(n)) return { price: n, source: "price-beat-modal", candidates: [n] };
+  }
+  return extractPriceFromRenderedText(text);
+}
