@@ -205,7 +205,7 @@ export function renderDashboard({ history, latest, lastRun }) {
     <h2>Notes</h2>
     <div class="note">
       ${low ? `Lowest price found: <strong>${fmtPrice(low.price)} at ${esc(low.retailer)}</strong> (${esc(low.model || "")}, ${fmtDate(low.date)}).<br><br>` : ""}
-      <strong>The Good Guys and Harvey Norman</strong> are checked with a real Chromium browser via Playwright (their prices only render via client-side JS).<br><br>
+      <strong>The Good Guys, Harvey Norman, and eBay</strong> are all checked with a real Chromium browser via Playwright rather than a plain fetch. eBay was moved to this method on 12 Aug 2026 after its price was found to be wrong: a plain fetch got no JSON-LD/meta price data and fell back to a stale dollar figure in the raw HTML text ($1,214) that didn't match what a real browser session showed ($1,385 — confirmed live). Earlier eBay readings in the history log predate this fix and may be inaccurate.<br><br>
       Price extraction is best-effort — see <code>scripts/extract.js</code>. Run <code>node scripts/check-prices.mjs</code> locally and check the console output to see what each retailer's check actually found.<br><br>
       Last automated run: <strong>${lastRun ? new Date(lastRun.ranAt).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" }) + " (Brisbane time)" : "never"}</strong>.
     </div>

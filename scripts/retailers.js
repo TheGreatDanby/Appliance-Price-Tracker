@@ -25,8 +25,8 @@ export const RETAILERS = [
     name: "eBay (AU)",
     model: "SMU6HAS01A",
     url: "https://www.ebay.com.au/itm/285950404503",
-    method: "fetch",
-    note: "Third-party listing — may end/change seller at any time.",
+    method: "browser",
+    note: "Third-party listing — may end/change seller at any time. Uses browser rendering, not plain fetch: eBay was confirmed (12 Aug 2026) to serve no JSON-LD/meta price tags and a stale price in its raw HTML text, different from what a real browser session sees — plain fetch silently pulled the wrong number.",
   },
   {
     name: "Crowdshop",

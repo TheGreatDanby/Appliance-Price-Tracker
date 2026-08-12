@@ -4,91 +4,104 @@
     "model": "SMU6HCS01A",
     "price": 1339,
     "url": "https://www.appliancesonline.com.au/product/bosch-serie-6-under-bench-dishwasher-smu6hcs01a/",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "Home Clearance",
     "model": "SMU6HCS01A",
     "price": 1269,
     "url": "https://www.homeclearance.com.au/p/bosch-serie-6-serie-6-under-bench-dishwasher-smu6hcs01a",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "Home Clearance",
     "model": "SMU6HAS01A",
     "price": 1347,
     "url": "https://www.homeclearance.com.au/p/bosch-serie-6-serie-6-under-bench-dishwasher-smu6has01a",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "eBay (AU)",
     "model": "SMU6HAS01A",
-    "price": 1214,
+    "price": 1385,
     "url": "https://www.ebay.com.au/itm/285950404503",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "14:30"
   },
   {
     "retailer": "Crowdshop",
     "model": "SMU6HCS01A",
     "price": 1161,
     "url": "https://crowdshop.com.au/bosch-60cm-under-bench-dishwasher-smu6hcs01a/",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "e&s",
     "model": "SMU6HCS01A",
     "price": 1299,
     "url": "https://www.eands.com.au/bosch-smu6hcs01a-serie-6-stainless-steel-built-under-dishwasher",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "Bing Lee",
     "model": "SMU6HCS01A",
     "price": 1399,
     "url": "https://www.binglee.com.au/products/bosch-smu6hcs01a-60cm-built-under-dishwasher",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "Signature Appliances",
     "model": "SMU6HCS01A",
     "price": 1399,
     "url": "https://www.signatureappliances.com.au/products/serie-6-60cm-built-under-dishwasher-smu6hcs01a",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "Rick Hart Outlet",
     "model": "SMU6HCS01A",
     "price": 1448,
     "url": "https://rickhartoutlet.com.au/products/bosch-serie-6-built-under-dishwasher-smu6hcs01a",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "Berloni Appliances",
     "model": "SMU6HAS01A",
     "price": 1349,
     "url": "https://www.berloniappliances.com.au/bosch-60cm-stainless-steel-built-under-dishwasher-series-6-smu6has01a/",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "Winnings Appliances",
     "model": "SMU6HCS01A",
     "price": 1570,
     "url": "https://www.winnings.com.au/p/bosch-serie-6-serie-6-under-bench-dishwasher-smu6hcs01a",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "The Good Guys",
     "model": "SMU6HCS01A",
     "price": 1299,
     "url": "https://www.thegoodguys.com.au/bosch-series-6-built-under-dishwasher-stainless-steel-smu6hcs01a",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "Harvey Norman",
     "model": "SMU6HCS01A",
     "price": 1292,
     "url": "https://www.harveynorman.com.au/bosch-60cm-series-6-built-under-dishwasher-with-home-connect-stainless-steel.html",
-    "date": "2026-08-12"
+    "date": "2026-08-12",
+    "time": "13:15"
   },
   {
     "retailer": "JB Hi-Fi",
@@ -96,6 +109,7 @@
     "price": null,
     "url": "https://www.jbhifi.com.au/collections/bosch-dishwashers",
     "date": "2026-08-12",
-    "error": "Doesn't stock the built-under model — only Series 6 freestanding, as of last check."
+    "error": "Doesn't stock the built-under model \u2014 only Series 6 freestanding, as of last check.",
+    "time": "13:15"
   }
 ]
