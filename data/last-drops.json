@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "retailer": "Home Clearance",
+    "model": "SMU6HCS01A",
+    "oldPrice": 1269,
+    "newPrice": 1068,
+    "url": "https://www.homeclearance.com.au/p/bosch-serie-6-serie-6-under-bench-dishwasher-smu6hcs01a"
+  },
+  {
+    "retailer": "Home Clearance",
+    "model": "SMU6HAS01A",
+    "oldPrice": 1347,
+    "newPrice": 999,
+    "url": "https://www.homeclearance.com.au/p/bosch-serie-6-serie-6-under-bench-dishwasher-smu6has01a"
+  }
+]
