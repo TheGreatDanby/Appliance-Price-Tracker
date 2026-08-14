@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Daily price tracker for the Bosch Series 6 60cm Built-Under Dishwasher across AU retailers. Free GitHub Actions + GitHub Pages, no paid services.",
+  "description": "Twice-daily price tracker for the Bosch Series 6 60cm Built-Under Dishwasher across AU retailers. Free GitHub Actions + GitHub Pages, no paid services.",
   "scripts": {
     "check": "node scripts/check-prices.mjs",
     "build": "node scripts/generate-dashboard.mjs",

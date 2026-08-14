@@ -1,9 +1,11 @@
-name: Daily dishwasher price check
+name: Twice-daily dishwasher price check
 
 on:
   schedule:
-    # 02:00 UTC = 12:00 Brisbane time (UTC+10, no daylight saving)
-    - cron: "0 2 * * *"
+    # 10:00 UTC = 20:00 (8pm) Brisbane time (UTC+10, no daylight saving)
+    - cron: "0 10 * * *"
+    # 22:00 UTC = 08:00 (8am) Brisbane time (UTC+10, no daylight saving)
+    - cron: "0 22 * * *"
   workflow_dispatch: {} # lets you trigger it manually from the Actions tab
 
 permissions:
@@ -46,6 +48,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Daily price check $(date -u +%Y-%m-%d)"
+            git commit -m "Price check $(date -u +%Y-%m-%dT%H:%MZ)"
             git push
           fi

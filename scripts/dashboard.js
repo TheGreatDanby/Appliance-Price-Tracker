@@ -176,7 +176,7 @@ export function renderDashboard({ history, latest, lastRun }) {
   <div class="header-row">
     <div>
       <h1>Bosch Series 6 Built-Under Dishwasher</h1>
-      <div class="subtitle">Daily price watch across major AU retailers · Runs automatically via a scheduled GitHub Actions workflow</div>
+      <div class="subtitle">Twice-daily price watch across major AU retailers · Runs automatically via a scheduled GitHub Actions workflow</div>
     </div>
     <div class="header-meta">
       <div>

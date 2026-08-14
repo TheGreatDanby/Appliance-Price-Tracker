@@ -1,13 +1,13 @@
 # Bosch Series 6 Dishwasher Price Tracker — GitHub Actions + GitHub Pages
 
-Daily price tracker for the Bosch Series 6 60cm Built-Under Dishwasher
+Twice-daily price tracker for the Bosch Series 6 60cm Built-Under Dishwasher
 (SMU6HCS01A / SMU6HAS01A) across 13 AU retailers, running entirely on
 **free** GitHub infrastructure — no Cloudflare, no paid services.
 
-- A scheduled GitHub Actions workflow runs once a day, checks every
+- A scheduled GitHub Actions workflow runs twice a day, checks every
   retailer (plain HTTP fetch for most, a real headless Chromium via
-  Playwright for the two JS-rendered sites — The Good Guys and Harvey
-  Norman), and commits the results back to the repo.
+  Playwright for the JS-rendered or bot-protected sites), and commits
+  the results back to the repo.
 - The same workflow regenerates a static dashboard (`docs/index.html`),
   which GitHub Pages serves for free.
 - History is stored as plain JSON in `data/` — no database, fully
@@ -42,11 +42,12 @@ This repo comes pre-seeded with the price data already gathered
    like `https://<your-username>.github.io/<your-repo>/`.
 
 4. **Trigger the first run manually** (don't wait for the schedule):
-   GitHub → your repo → Actions tab → "Daily dishwasher price check" →
+   GitHub → your repo → Actions tab → "Twice-daily dishwasher price check" →
    Run workflow. Watch it go green, then visit your Pages URL.
 
-That's it — from then on it runs automatically every day at 12:00 Brisbane
-time (`0 2 * * *` UTC in the workflow file) and updates the same page.
+That's it — from then on it runs automatically every day at 8:00am and
+8:00pm Brisbane time (`0 10,22 * * *` UTC in the workflow file) and
+updates the same page.
 
 ## Running it locally (optional, for testing/tuning)
 
