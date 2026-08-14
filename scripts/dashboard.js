@@ -4,7 +4,12 @@ import { CHART_PALETTE } from "./retailers.js";
 // it in a new tab. A static GitHub Pages site has no server of its own to
 // run the check from — this is the closest thing to a "refresh" button
 // that doesn't mean embedding a repo-write credential in a public page.
+// Starting the actual scan still requires the user to click "Run workflow"
+// on that GitHub page themselves — the button opens the door, it can't walk
+// through it. Once opened, the page polls GitHub's public (unauthenticated)
+// Actions API for that repo to show progress here without needing a token.
 const WORKFLOW_URL = "https://github.com/TheGreatDanby/Appliance-Price-Tracker/actions/workflows/daily-price-check.yml";
+const RUNS_API_URL = "https://api.github.com/repos/TheGreatDanby/Appliance-Price-Tracker/actions/workflows/daily-price-check.yml/runs?per_page=1";
 
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -105,6 +110,23 @@ export function renderDashboard({ history, latest, lastRun }) {
   }
   .refresh-btn:hover { border-color:var(--accent); color:var(--accent); }
   .refresh-btn svg { width:13px; height:13px; }
+  .refresh-hint { color:var(--text-dim); font-size:11px; text-align:right; margin-top:5px; max-width:220px; }
+
+  .scan-status { display:none; margin:14px 0 4px; }
+  .scan-status.visible { display:block; }
+  .scan-progress-track { height:6px; border-radius:999px; background:var(--panel-2); border:1px solid var(--border); overflow:hidden; }
+  .scan-progress-fill { height:100%; width:0%; background:var(--accent); border-radius:999px; transition:width .5s ease; }
+  .scan-progress-fill.indeterminate { width:28%; animation:scanPulse 1.1s ease-in-out infinite; }
+  @keyframes scanPulse { 0% { margin-left:0%; } 50% { margin-left:72%; } 100% { margin-left:0%; } }
+  .scan-log {
+    margin-top:8px; max-height:130px; overflow-y:auto; background:var(--panel-2);
+    border:1px solid var(--border); border-radius:8px; padding:8px 10px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px;
+    color:var(--text-dim); line-height:1.7;
+  }
+  .scan-log div { white-space:pre-wrap; }
+  .scan-log .ok { color:var(--good); }
+  .scan-log .err { color:var(--bad); }
   .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px 22px; margin-bottom:18px; }
   .card h2 { font-size:15px; margin:0 0 14px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; }
   table { width:100%; border-collapse:collapse; font-size:14px; }
@@ -157,12 +179,20 @@ export function renderDashboard({ history, latest, lastRun }) {
       <div class="subtitle">Daily price watch across major AU retailers · Runs automatically via a scheduled GitHub Actions workflow</div>
     </div>
     <div class="header-meta">
-      <div class="checked-at">Last checked<br><strong>${lastRun ? new Date(lastRun.ranAt).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "never"}</strong></div>
-      <a class="refresh-btn" href="${WORKFLOW_URL}" target="_blank" rel="noopener" title="Opens the GitHub Actions workflow page — click 'Run workflow' there to trigger a manual scan">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-        Refresh
-      </a>
+      <div>
+        <div class="checked-at">Last checked<br><strong>${lastRun ? new Date(lastRun.ranAt).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "never"}</strong></div>
+        <a class="refresh-btn" id="refresh-btn" href="${WORKFLOW_URL}" target="_blank" rel="noopener" title="Opens the GitHub Actions workflow page — click 'Run workflow' there to trigger a manual scan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+          Refresh
+        </a>
+        <div class="refresh-hint">Opens GitHub in a new tab — click "Run workflow" there to start a scan</div>
+      </div>
     </div>
+  </div>
+
+  <div class="scan-status" id="scan-status">
+    <div class="scan-progress-track"><div class="scan-progress-fill" id="scan-progress-fill"></div></div>
+    <div class="scan-log" id="scan-log"></div>
   </div>
 
   <div class="card">
@@ -452,6 +482,105 @@ function renderPriceChart() {
   });
 }
 renderPriceChart();
+
+// ---- Refresh: opens the GitHub Actions workflow page (the only way a
+// static Pages site can trigger a run without embedding a credential), then
+// polls GitHub's public REST API for that workflow's runs to show progress.
+// Starting the run itself still needs the user to click "Run workflow" on
+// the GitHub tab that opens — this just watches for it and reports back.
+(function () {
+  var btn = document.getElementById('refresh-btn');
+  var statusBox = document.getElementById('scan-status');
+  var fill = document.getElementById('scan-progress-fill');
+  var logEl = document.getElementById('scan-log');
+  if (!btn || !statusBox || !fill || !logEl) return;
+
+  var RUNS_API_URL = ${JSON.stringify(RUNS_API_URL)};
+  var POLL_MS = 5000;
+  var TIMEOUT_MS = 6 * 60 * 1000;
+  var pollTimer = null;
+  var pollDeadline = null;
+  var watchSince = null;
+  var trackedRunId = null;
+
+  function addLog(msg, cls) {
+    var line = document.createElement('div');
+    if (cls) line.className = cls;
+    var t = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    line.textContent = '[' + t + '] ' + msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setProgress(pct, indeterminate) {
+    fill.classList.toggle('indeterminate', !!indeterminate);
+    fill.style.width = indeterminate ? '' : pct + '%';
+  }
+
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  function pollOnce() {
+    if (pollDeadline && Date.now() > pollDeadline) {
+      addLog('Stopped watching after 6 minutes — check the GitHub Actions tab directly for progress.', 'err');
+      stopPolling();
+      return;
+    }
+    fetch(RUNS_API_URL, { headers: { Accept: 'application/vnd.github+json' } })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        var run = data.workflow_runs && data.workflow_runs[0];
+        if (!run) return;
+
+        if (!trackedRunId) {
+          if (new Date(run.created_at) > watchSince) {
+            trackedRunId = run.id;
+          } else {
+            return; // still the previous run — keep waiting for a new one
+          }
+        }
+        if (run.id !== trackedRunId) return;
+
+        if (run.status === 'queued') {
+          setProgress(15);
+          addLog('Run queued on GitHub — waiting for a runner...');
+        } else if (run.status === 'in_progress') {
+          setProgress(60, true);
+          addLog('Run in progress — checking retailer prices...');
+        } else if (run.status === 'completed') {
+          stopPolling();
+          if (run.conclusion === 'success') {
+            setProgress(100);
+            addLog('Scan complete. Reloading page in 3s...', 'ok');
+            setTimeout(function () { location.reload(); }, 3000);
+          } else {
+            addLog('Run finished with status "' + run.conclusion + '" — check the Actions tab for details.', 'err');
+          }
+        }
+      })
+      .catch(function (err) {
+        addLog("Couldn't check run status (" + err.message + '). You can still watch progress on the GitHub Actions tab.', 'err');
+      });
+  }
+
+  btn.addEventListener('click', function () {
+    statusBox.classList.add('visible');
+    logEl.innerHTML = '';
+    trackedRunId = null;
+    watchSince = new Date();
+    setProgress(5, true);
+    addLog('Opened the GitHub Actions page in a new tab — click "Run workflow" there to start the scan.');
+    addLog('Waiting for the run to start...');
+    stopPolling();
+    pollDeadline = Date.now() + TIMEOUT_MS;
+    pollTimer = setInterval(pollOnce, POLL_MS);
+    pollOnce();
+  });
+})();
 </script>
 </body>
 </html>`;
