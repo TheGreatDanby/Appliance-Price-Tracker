@@ -42,13 +42,24 @@ async function checkFetchRetailer(retailer) {
   }
 }
 
-async function checkBrowserRetailer(retailer, browser) {
-  const page = await browser.newPage({ userAgent: UA });
+async function checkBrowserRetailer(retailer, context) {
+  const page = await context.newPage();
   try {
     await page.goto(retailer.url, { waitUntil: "networkidle", timeout: 30000 });
-    await page.waitForTimeout(1500); // let late-rendering price widgets settle
-    const text = await page.evaluate(() => document.body.innerText);
-    const result = extractPriceFromRenderedText(text);
+    await page.waitForTimeout(2000); // let late-rendering price widgets settle
+
+    let text = await page.evaluate(() => document.body.innerText);
+    let result = extractPriceFromRenderedText(text);
+
+    // Some sites (JS-heavy carts, bot-checked pages) render the real price
+    // widget on a delay after networkidle fires — give it one more beat
+    // before giving up, rather than reporting a false "not found".
+    if (result.price == null) {
+      await page.waitForTimeout(2500);
+      text = await page.evaluate(() => document.body.innerText);
+      result = extractPriceFromRenderedText(text);
+    }
+
     return { ...retailer, price: result.price, source: result.source };
   } catch (err) {
     return { ...retailer, price: null, error: String(err) };
@@ -60,8 +71,8 @@ async function checkBrowserRetailer(retailer, browser) {
 // Same as checkBrowserRetailer, but clicks a reveal-price element first
 // (e.g. The Good Guys' "Price Check: Pay Less with PRICE BEAT" modal) and
 // reads the price out of whatever that click reveals.
-async function checkBrowserClickRetailer(retailer, browser) {
-  const page = await browser.newPage({ userAgent: UA });
+async function checkBrowserClickRetailer(retailer, context) {
+  const page = await context.newPage();
   try {
     await page.goto(retailer.url, { waitUntil: "networkidle", timeout: 30000 });
     await page.waitForTimeout(1000);
@@ -95,12 +106,32 @@ async function main() {
   let browserResults = [];
   let browserClickResults = [];
   if (browserRetailers.length || browserClickRetailers.length) {
-    const browser = await chromium.launch();
+    // A handful of retailer sites (eBay, Harvey Norman, Bing Lee, Signature
+    // Appliances) sit behind bot-protection that treats default headless
+    // Chromium differently from a normal browser session. These launch args
+    // + context settings mimic a real desktop Chrome session more closely —
+    // not foolproof against sophisticated bot-scoring (eBay in particular
+    // may still occasionally block), but it's the best a static GitHub
+    // Actions runner can do without a paid unblocking proxy.
+    const browser = await chromium.launch({
+      args: ["--disable-blink-features=AutomationControlled"],
+    });
+    const context = await browser.newContext({
+      userAgent: UA,
+      viewport: { width: 1366, height: 900 },
+      locale: "en-AU",
+      timezoneId: "Australia/Brisbane",
+      extraHTTPHeaders: { "Accept-Language": "en-AU,en;q=0.9" },
+    });
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
+
     for (const r of browserRetailers) {
-      browserResults.push(await checkBrowserRetailer(r, browser));
+      browserResults.push(await checkBrowserRetailer(r, context));
     }
     for (const r of browserClickRetailers) {
-      browserClickResults.push(await checkBrowserClickRetailer(r, browser));
+      browserClickResults.push(await checkBrowserClickRetailer(r, context));
     }
     await browser.close();
   }
