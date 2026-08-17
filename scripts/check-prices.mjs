@@ -6,7 +6,7 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 import { fileURLToPath } from "url";
 import { chromium } from "playwright";
 import { RETAILERS } from "./retailers.js";
-import { extractPriceFromHtml, extractPriceFromRenderedText, extractPriceBeatFromText } from "./extract.js";
+import { extractPriceFromHtml, extractPriceFromRenderedText, extractPriceBeatFromText, looksLikeBotChallenge } from "./extract.js";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
@@ -49,7 +49,7 @@ async function checkBrowserRetailer(retailer, context) {
     await page.waitForTimeout(2000); // let late-rendering price widgets settle
 
     let text = await page.evaluate(() => document.body.innerText);
-    let result = extractPriceFromRenderedText(text);
+    let result = extractPriceFromRenderedText(text, retailer.model);
 
     // Some sites (JS-heavy carts, bot-checked pages) render the real price
     // widget on a delay after networkidle fires — give it one more beat
@@ -57,7 +57,11 @@ async function checkBrowserRetailer(retailer, context) {
     if (result.price == null) {
       await page.waitForTimeout(2500);
       text = await page.evaluate(() => document.body.innerText);
-      result = extractPriceFromRenderedText(text);
+      result = extractPriceFromRenderedText(text, retailer.model);
+    }
+
+    if (result.price == null && looksLikeBotChallenge(text)) {
+      return { ...retailer, price: null, error: "blocked by bot-protection challenge page" };
     }
 
     return { ...retailer, price: result.price, source: result.source };

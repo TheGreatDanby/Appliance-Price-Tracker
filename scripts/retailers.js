@@ -74,7 +74,8 @@ export const RETAILERS = [
     name: "Winnings Appliances",
     model: "SMU6HCS01A",
     url: "https://www.winnings.com.au/p/bosch-serie-6-serie-6-under-bench-dishwasher-smu6hcs01a",
-    method: "fetch",
+    method: "browser",
+    note: "Moved from fetch to browser rendering on 17 Aug 2026 — confirmed the raw HTML has zero price text (fully client-rendered), which is why it was returning 'price not found' despite the price being visible on the live page. (It was already listed as browser-rendered in the dashboard notes text, but the retailer config here was never actually updated to match — this closes that gap.)",
   },
   {
     name: "The Good Guys",

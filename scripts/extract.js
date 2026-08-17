@@ -106,12 +106,56 @@ export function extractPriceFromHtml(html) {
   return { price: null, source: "none", candidates: [] };
 }
 
+// Common bot-challenge / interstitial page markers (Cloudflare, Akamai,
+// PerimeterX, generic "enable JS" walls). If a rendered page shows one of
+// these instead of the real page, there's no real price to find — this is
+// an IP/fingerprint block, not an extraction problem, so callers can surface
+// a more useful error than a bare "price not found".
+const BOT_CHALLENGE_MARKERS = [
+  /just a moment/i,
+  /checking your browser/i,
+  /attention required/i,
+  /pardon our interruption/i,
+  /access denied/i,
+  /verify you are a human/i,
+  /enable javascript and cookies to continue/i,
+];
+
+export function looksLikeBotChallenge(text) {
+  return BOT_CHALLENGE_MARKERS.some((re) => re.test(text));
+}
+
 // For Browser-Rendering pages: pass in page.evaluate(() => document.body.innerText).
-export function extractPriceFromRenderedText(text) {
+// `model` (the SKU) is optional but strongly preferred: some sites render a
+// "choose your model" variant selector that lists sibling SKUs' prices
+// *before* the actual page's own price further down — taking the first $
+// figure on the page can silently grab a different variant's price.
+//
+// When present, a "Model: <SKU>" / "SKU: <SKU>" spec-row is a much more
+// reliable anchor than the bare SKU text alone: the SKU often also appears
+// later in the page (specs tables, review mentions) long after the price,
+// so anchoring to *any* occurrence risks landing past it. The label+value
+// pairing is specific to the confirmed product-detail section, where the
+// price reliably follows within a short distance.
+export function extractPriceFromRenderedText(text, model) {
   const candidates = extractFromText(text);
   if (!candidates.length) return { price: null, source: "none", candidates: [] };
-  // The visible price is usually the first sane figure near the top of the
-  // page (before the Afterpay/Zip installment breakdown further down).
+
+  if (model) {
+    const escaped = model.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const labelMatch = text.match(new RegExp(`(?:model|sku)\\s*:?\\s*\\n?\\s*${escaped}`, "i"));
+    if (labelMatch) {
+      const start = labelMatch.index + labelMatch[0].length;
+      const nearCandidates = extractFromText(text.slice(start, start + 400));
+      if (nearCandidates.length) {
+        return { price: nearCandidates[0], source: "rendered-text-near-sku-label", candidates: nearCandidates };
+      }
+    }
+  }
+
+  // Fallback: the visible price is usually the first sane figure near the
+  // top of the page (before the Afterpay/Zip installment breakdown further
+  // down) — used when there's no "Model:"/"SKU:" label to anchor to.
   return { price: candidates[0], source: "rendered-text", candidates };
 }
 
