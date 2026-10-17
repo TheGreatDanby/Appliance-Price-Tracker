@@ -5,7 +5,7 @@
     "price": null,
     "url": "https://crowdshop.com.au/bosch-60cm-under-bench-dishwasher-smu6hcs01a/",
     "date": "2026-10-17",
-    "time": "00:27",
+    "time": "10:16",
     "error": "HTTP 403"
   },
   {
@@ -14,7 +14,7 @@
     "price": 1392,
     "url": "https://www.eands.com.au/bosch-smu6hcs01a-serie-6-stainless-steel-built-under-dishwasher",
     "date": "2026-10-17",
-    "time": "00:27"
+    "time": "10:16"
   },
   {
     "retailer": "Rick Hart Outlet",
@@ -22,7 +22,7 @@
     "price": 1448,
     "url": "https://rickhartoutlet.com.au/products/bosch-serie-6-built-under-dishwasher-smu6hcs01a",
     "date": "2026-10-17",
-    "time": "00:27"
+    "time": "10:16"
   },
   {
     "retailer": "Berloni Appliances",
@@ -30,16 +30,15 @@
     "price": 1349,
     "url": "https://www.berloniappliances.com.au/bosch-60cm-stainless-steel-built-under-dishwasher-series-6-smu6has01a/",
     "date": "2026-10-17",
-    "time": "00:27"
+    "time": "10:16"
   },
   {
     "retailer": "Appliances Online",
     "model": "SMU6HCS01A",
-    "price": null,
+    "price": 1450,
     "url": "https://www.appliancesonline.com.au/product/bosch-serie-6-under-bench-dishwasher-smu6hcs01a/",
     "date": "2026-10-17",
-    "time": "00:27",
-    "error": "TimeoutError: page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.appliancesonline.com.au/product/bosch-serie-6-under-bench-dishwasher-smu6hcs01a/\", waiting until \"networkidle\"\n"
+    "time": "10:16"
   },
   {
     "retailer": "Home Clearance",
@@ -47,7 +46,7 @@
     "price": null,
     "url": "https://www.homeclearance.com.au/p/bosch-serie-6-serie-6-under-bench-dishwasher-smu6hcs01a",
     "date": "2026-10-17",
-    "time": "00:27",
+    "time": "10:16",
     "error": "price not found"
   },
   {
@@ -56,7 +55,7 @@
     "price": null,
     "url": "https://www.homeclearance.com.au/p/bosch-serie-6-serie-6-under-bench-dishwasher-smu6has01a",
     "date": "2026-10-17",
-    "time": "00:27",
+    "time": "10:16",
     "error": "price not found"
   },
   {
@@ -65,7 +64,7 @@
     "price": null,
     "url": "https://www.ebay.com.au/itm/285950404503",
     "date": "2026-10-17",
-    "time": "00:27",
+    "time": "10:16",
     "error": "price not found"
   },
   {
@@ -74,7 +73,7 @@
     "price": null,
     "url": "https://www.binglee.com.au/products/bosch-smu6hcs01a-60cm-built-under-dishwasher",
     "date": "2026-10-17",
-    "time": "00:27",
+    "time": "10:16",
     "error": "price not found"
   },
   {
@@ -83,7 +82,7 @@
     "price": null,
     "url": "https://www.signatureappliances.com.au/products/serie-6-60cm-built-under-dishwasher-smu6hcs01a",
     "date": "2026-10-17",
-    "time": "00:27",
+    "time": "10:16",
     "error": "price not found"
   },
   {
@@ -92,7 +91,7 @@
     "price": 1447,
     "url": "https://www.winnings.com.au/p/bosch-serie-6-serie-6-under-bench-dishwasher-smu6hcs01a",
     "date": "2026-10-17",
-    "time": "00:27"
+    "time": "10:16"
   },
   {
     "retailer": "The Good Guys",
@@ -100,7 +99,7 @@
     "price": 1399,
     "url": "https://www.thegoodguys.com.au/bosch-series-6-built-under-dishwasher-stainless-steel-smu6hcs01a",
     "date": "2026-10-17",
-    "time": "00:27"
+    "time": "10:16"
   },
   {
     "retailer": "Harvey Norman",
@@ -108,7 +107,7 @@
     "price": null,
     "url": "https://www.harveynorman.com.au/bosch-60cm-series-6-built-under-dishwasher-with-home-connect-stainless-steel.html",
     "date": "2026-10-17",
-    "time": "00:27",
+    "time": "10:16",
     "error": "price not found"
   },
   {
@@ -117,7 +116,7 @@
     "price": null,
     "url": "https://www.thegoodguys.com.au/bosch-series-6-built-under-dishwasher-stainless-steel-smu6hcs01a",
     "date": "2026-10-17",
-    "time": "00:27",
+    "time": "10:16",
     "error": "The Good Guys removed the click-to-reveal 'PRICE BEAT' modal from this product page (confirmed 14 Aug 2026) — it's now a 'SEEN IT CHEAPER? call 1300 942 765' phone-in guarantee instead, which can't be checked automatically. This row is kept so a human can call and compare, rather than showing a stale/misleading auto-checked price."
   },
   {
@@ -126,7 +125,7 @@
     "price": null,
     "url": "https://www.jbhifi.com.au/collections/bosch-dishwashers",
     "date": "2026-10-17",
-    "time": "00:27",
+    "time": "10:16",
     "error": "Doesn't stock the built-under model — only Series 6 freestanding, as of last check."
   }
 ]
